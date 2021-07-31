@@ -29,13 +29,16 @@ impl Lox {
         Ok(())
     }
 
-    pub fn run_prompt(&mut self) -> io::Result<usize> {
+    pub fn run_prompt(&mut self) -> io::Result<()> {
         println!("Running rlox prompt");
         let mut buf = String::new();
         loop {
             print!("> ");
             io::stdout().flush()?;
-            io::stdin().read_line(&mut buf)?;
+            let n = io::stdin().read_line(&mut buf)?;
+            if n == 0 {
+                process::exit(64);
+            }
             self.run(&buf);
             buf.clear();
             self.error_handler.borrow_mut().had_error = false;
