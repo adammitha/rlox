@@ -1,8 +1,8 @@
-pub struct Error {
+pub struct SimpleErrorHandler {
     pub had_error: bool,
 }
 
-impl Error {
+impl SimpleErrorHandler {
     pub fn error(&mut self, line: u32, message: &str) {
         self.report(line, "", message);
     }

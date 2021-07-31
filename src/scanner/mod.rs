@@ -1,6 +1,6 @@
 mod token;
 mod token_type;
-use super::Error;
+use super::SimpleErrorHandler;
 use std::{any::Any, cell::RefCell, mem, rc::Rc};
 use token::Token;
 use token_type::TokenType;
@@ -11,11 +11,11 @@ pub struct Scanner {
     start: u32,
     current: u32,
     line: u32,
-    error_handler: Rc<RefCell<Error>>,
+    error_handler: Rc<RefCell<SimpleErrorHandler>>,
 }
 
 impl Scanner {
-    pub fn new(source: &str, error_handler: Rc<RefCell<Error>>) -> Self {
+    pub fn new(source: &str, error_handler: Rc<RefCell<SimpleErrorHandler>>) -> Self {
         Self {
             source: String::from(source).chars().collect(),
             tokens: Vec::new(),

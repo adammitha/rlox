@@ -1,6 +1,6 @@
 mod error;
 mod scanner;
-use error::Error;
+use error::SimpleErrorHandler;
 use scanner::Scanner;
 use std::{
     cell::RefCell,
@@ -11,13 +11,13 @@ use std::{
 };
 
 pub struct Lox {
-    error_handler: Rc<RefCell<Error>>,
+    error_handler: Rc<RefCell<SimpleErrorHandler>>,
 }
 
 impl Lox {
     pub fn new() -> Self {
         Self {
-            error_handler: Rc::new(RefCell::new(Error { had_error: false })),
+            error_handler: Rc::new(RefCell::new(SimpleErrorHandler { had_error: false })),
         }
     }
     pub fn run_file(&self, path: &str) -> io::Result<()> {
