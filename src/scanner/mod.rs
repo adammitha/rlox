@@ -1,7 +1,7 @@
 mod token;
 mod token_type;
 use super::Error;
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{any::Any, cell::RefCell, mem, rc::Rc};
 use token::Token;
 use token_type::TokenType;
 
@@ -26,7 +26,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &[Token] {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -37,7 +37,7 @@ impl Scanner {
             None,
             self.line,
         ));
-        return &self.tokens;
+        return mem::take(&mut self.tokens);
     }
 
     fn is_at_end(&self) -> bool {
