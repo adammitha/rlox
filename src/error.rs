@@ -8,7 +8,7 @@ impl SimpleErrorHandler {
     }
 
     fn report(&mut self, line: u32, location: &str, message: &str) {
-        eprintln!("[line {}] Error {}: {}", line, location, message);
+        eprintln!("[line {}] Error{}: {}", line, location, message);
         self.had_error = true;
     }
 }

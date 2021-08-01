@@ -1,21 +1,21 @@
 mod token;
 mod token_type;
 use super::SimpleErrorHandler;
-use std::{any::Any, cell::RefCell, mem, rc::Rc};
+use std::{any::Any, mem};
 use token::Token;
 use token_type::TokenType;
 
-pub struct Scanner {
+pub struct Scanner<'a> {
     source: Vec<char>,
     tokens: Vec<Token>,
     start: u32,
     current: u32,
     line: u32,
-    error_handler: Rc<RefCell<SimpleErrorHandler>>,
+    error_handler: &'a mut SimpleErrorHandler,
 }
 
-impl Scanner {
-    pub fn new(source: &str, error_handler: Rc<RefCell<SimpleErrorHandler>>) -> Self {
+impl<'a> Scanner<'a> {
+    pub fn new(source: &str, error_handler: &'a mut SimpleErrorHandler) -> Self {
         Self {
             source: String::from(source).chars().collect(),
             tokens: Vec::new(),
@@ -110,9 +110,7 @@ impl Scanner {
                 }
 
                 if self.is_at_end() {
-                    self.error_handler
-                        .borrow_mut()
-                        .error(self.line, "Unterminated string.");
+                    self.error_handler.error(self.line, "Unterminated string.");
                 } else {
                     self.advance();
                     let value: String = self.source
@@ -156,9 +154,7 @@ impl Scanner {
                 }
             }
             _ => {
-                self.error_handler
-                    .borrow_mut()
-                    .error(self.line, "Unexpected character");
+                self.error_handler.error(self.line, "Unexpected character");
                 None
             }
         };
