@@ -3,6 +3,10 @@ pub struct SimpleErrorHandler {
 }
 
 impl SimpleErrorHandler {
+    pub fn new() -> Self {
+        Self { had_error: false }
+    }
+
     pub fn error(&mut self, line: u32, message: &str) {
         self.report(line, "", message);
     }

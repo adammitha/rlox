@@ -15,7 +15,7 @@ pub struct Lox {
 impl Lox {
     pub fn new() -> Self {
         Self {
-            error_handler: SimpleErrorHandler { had_error: false },
+            error_handler: SimpleErrorHandler::new(),
         }
     }
     pub fn run_file(&mut self, path: &str) -> io::Result<()> {
