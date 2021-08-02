@@ -1,5 +1,4 @@
-use std::fmt::Display;
-
+use super::super::scanner::token;
 use super::super::scanner::token::Token;
 pub struct Binary {
     pub left: Box<Expr>,
@@ -12,7 +11,7 @@ pub struct Grouping {
 }
 
 pub struct Literal {
-    pub value: Option<Box<dyn Display>>,
+    pub value: token::Literal,
 }
 
 pub struct Unary {

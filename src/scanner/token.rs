@@ -1,22 +1,17 @@
-use std::fmt::Debug;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use super::token_type::TokenType;
 
+#[derive(Clone)]
 pub struct Token {
-    token_type: TokenType,
+    pub token_type: TokenType,
     pub lexeme: String,
-    literal: Option<Box<dyn Display>>,
+    literal: Option<Literal>,
     line: u32,
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        lexeme: String,
-        literal: Option<Box<dyn Display>>,
-        line: u32,
-    ) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Self {
         Self {
             token_type,
             lexeme,
@@ -40,5 +35,17 @@ impl Debug for Token {
             )
             .field("line", &self.line)
             .finish()
+    }
+}
+
+#[derive(Clone)]
+pub enum Literal {
+    Number(f64),
+    String(String),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
     }
 }

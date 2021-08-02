@@ -1,8 +1,8 @@
 pub mod token;
 pub mod token_type;
 use super::SimpleErrorHandler;
-use std::fmt::Display;
 use std::mem;
+use token::Literal;
 use token::Token;
 use token_type::TokenType;
 
@@ -118,7 +118,7 @@ impl<'a> Scanner<'a> {
                         [(self.start + 1) as usize..(self.current - 1) as usize]
                         .into_iter()
                         .collect();
-                    self.add_token_with_literal(TokenType::String, Some(Box::new(value)));
+                    self.add_token_with_literal(TokenType::String, Some(Literal::String(value)));
                 };
                 None
             }
@@ -139,7 +139,7 @@ impl<'a> Scanner<'a> {
                     .into_iter()
                     .collect();
                 let num: f64 = num_str.parse().unwrap();
-                self.add_token_with_literal(TokenType::Number, Some(Box::new(num)));
+                self.add_token_with_literal(TokenType::Number, Some(Literal::Number(num)));
                 None
             }
             c if c.is_alphabetic() || c == &'_' => {
@@ -195,7 +195,7 @@ impl<'a> Scanner<'a> {
         self.add_token_with_literal(token_type, None);
     }
 
-    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Box<dyn Display>>) {
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Literal>) {
         let text: String = self.source[self.start as usize..self.current as usize]
             .to_owned()
             .into_iter()
