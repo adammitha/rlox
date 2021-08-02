@@ -2,6 +2,8 @@ mod error;
 pub mod parser;
 pub mod scanner;
 use error::SimpleErrorHandler;
+use parser::ast_printer;
+use parser::Parser;
 use scanner::Scanner;
 use std::{
     fs,
@@ -47,9 +49,11 @@ impl Lox {
     pub fn run(&mut self, source: &str) {
         let mut scanner = Scanner::new(source, &mut self.error_handler);
         let tokens = scanner.scan_tokens();
-
-        for token in tokens {
-            println!("{:?}", token);
-        }
+        let mut parser = Parser::new(tokens, &mut self.error_handler);
+        let expression = parser.parse();
+        if self.error_handler.had_error {
+            return;
+        };
+        println!("{}", ast_printer::print(&expression));
     }
 }

@@ -1,3 +1,6 @@
+use crate::scanner::token::Token;
+use crate::scanner::token_type::TokenType;
+
 pub struct SimpleErrorHandler {
     pub had_error: bool,
 }
@@ -9,6 +12,13 @@ impl SimpleErrorHandler {
 
     pub fn error(&mut self, line: u32, message: &str) {
         self.report(line, "", message);
+    }
+
+    pub fn parser_error(&mut self, token: &Token, msg: &str) {
+        match token.token_type {
+            TokenType::EOF => self.report(token.line, " at end", msg),
+            _ => self.report(token.line, &format!(" at '{}'", token.lexeme), msg),
+        }
     }
 
     fn report(&mut self, line: u32, location: &str, message: &str) {

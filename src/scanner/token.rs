@@ -6,12 +6,17 @@ use super::token_type::TokenType;
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    literal: Option<Literal>,
-    line: u32,
+    pub literal: Option<Box<Literal>>,
+    pub line: u32,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Option<Literal>, line: u32) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        literal: Option<Box<Literal>>,
+        line: u32,
+    ) -> Self {
         Self {
             token_type,
             lexeme,
@@ -42,10 +47,19 @@ impl Debug for Token {
 pub enum Literal {
     Number(f64),
     String(String),
+    True,
+    False,
+    Nil,
 }
 
 impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            Literal::Number(num) => write!(f, "{}", num),
+            Literal::String(string) => write!(f, "{}", string),
+            Literal::True => write!(f, "True"),
+            Literal::False => write!(f, "False"),
+            Literal::Nil => write!(f, "Nil"),
+        }
     }
 }

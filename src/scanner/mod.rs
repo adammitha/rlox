@@ -118,7 +118,10 @@ impl<'a> Scanner<'a> {
                         [(self.start + 1) as usize..(self.current - 1) as usize]
                         .into_iter()
                         .collect();
-                    self.add_token_with_literal(TokenType::String, Some(Literal::String(value)));
+                    self.add_token_with_literal(
+                        TokenType::String,
+                        Some(Box::new(Literal::String(value))),
+                    );
                 };
                 None
             }
@@ -139,7 +142,10 @@ impl<'a> Scanner<'a> {
                     .into_iter()
                     .collect();
                 let num: f64 = num_str.parse().unwrap();
-                self.add_token_with_literal(TokenType::Number, Some(Literal::Number(num)));
+                self.add_token_with_literal(
+                    TokenType::Number,
+                    Some(Box::new(Literal::Number(num))),
+                );
                 None
             }
             c if c.is_alphabetic() || c == &'_' => {
@@ -195,7 +201,7 @@ impl<'a> Scanner<'a> {
         self.add_token_with_literal(token_type, None);
     }
 
-    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Literal>) {
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Box<Literal>>) {
         let text: String = self.source[self.start as usize..self.current as usize]
             .to_owned()
             .into_iter()

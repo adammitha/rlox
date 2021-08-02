@@ -11,7 +11,7 @@ pub struct Grouping {
 }
 
 pub struct Literal {
-    pub value: token::Literal,
+    pub value: Box<token::Literal>,
 }
 
 pub struct Unary {
