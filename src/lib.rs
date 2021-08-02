@@ -1,5 +1,6 @@
 mod error;
-mod scanner;
+pub mod parser;
+pub mod scanner;
 use error::SimpleErrorHandler;
 use scanner::Scanner;
 use std::{

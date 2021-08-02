@@ -1,7 +1,8 @@
-mod token;
-mod token_type;
+pub mod token;
+pub mod token_type;
 use super::SimpleErrorHandler;
-use std::{any::Any, mem};
+use std::fmt::Display;
+use std::mem;
 use token::Token;
 use token_type::TokenType;
 
@@ -194,7 +195,7 @@ impl<'a> Scanner<'a> {
         self.add_token_with_literal(token_type, None);
     }
 
-    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Box<dyn Any>>) {
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<Box<dyn Display>>) {
         let text: String = self.source[self.start as usize..self.current as usize]
             .to_owned()
             .into_iter()
