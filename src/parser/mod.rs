@@ -23,8 +23,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> expr::Expr {
-        self.expression()
+    pub fn parse(&mut self) -> Box<expr::Expr> {
+        Box::new(self.expression())
     }
 
     fn expression(&mut self) -> expr::Expr {
