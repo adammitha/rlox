@@ -85,7 +85,7 @@ impl Interpreter {
             expr::Expr::Binary(binary) => self.visit_binary_expr(binary),
             expr::Expr::Grouping(grouping) => self.visit_grouping_expr(grouping),
             expr::Expr::Literal(literal) => self.visit_literal_expr(literal),
-            expr::Expr::Unary(_) => todo!(),
+            expr::Expr::Unary(unary) => self.visit_unary_expr(unary),
         }
     }
 }
