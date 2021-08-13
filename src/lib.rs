@@ -1,6 +1,7 @@
 mod error;
-pub mod parser;
-pub mod scanner;
+pub mod interpreter;
+mod parser;
+mod scanner;
 use error::SimpleErrorHandler;
 use parser::ast_printer;
 use parser::Parser;
