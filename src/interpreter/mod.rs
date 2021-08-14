@@ -35,11 +35,11 @@ impl<'a> Interpreter<'a> {
         })
     }
 
-    fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Result<Value> {
+    fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Result<Value> {
         self.evaluate(&expr.expression)
     }
 
-    fn visit_unary_expr(&self, expr: &expr::Unary) -> Result<Value> {
+    fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Result<Value> {
         let right = self.evaluate(&expr.right)?;
 
         match expr.operator.token_type {
@@ -79,7 +79,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn visit_binary_expr(&self, expr: &expr::Binary) -> Result<Value> {
+    fn visit_binary_expr(&mut self, expr: &expr::Binary) -> Result<Value> {
         let left = self.evaluate(&expr.left)?;
         let right = self.evaluate(&expr.right)?;
 
@@ -125,8 +125,20 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn evaluate(&self, expr: &expr::Expr) -> Result<Value> {
+    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Value> {
+        let value = self.evaluate(&expr.value)?;
+        match self.environment.assign(&expr.name, value.clone()) {
+            Some(_) => Ok(value),
+            None => Err(InterpreterError::new(
+                expr.name.clone(),
+                &format!("Undefined variable '{}'.", expr.name.lexeme),
+            )),
+        }
+    }
+
+    fn evaluate(&mut self, expr: &expr::Expr) -> Result<Value> {
         match expr {
+            expr::Expr::Assign(assign) => self.visit_assign_expr(assign),
             expr::Expr::Binary(binary) => self.visit_binary_expr(binary),
             expr::Expr::Grouping(grouping) => self.visit_grouping_expr(grouping),
             expr::Expr::Literal(literal) => self.visit_literal_expr(literal),

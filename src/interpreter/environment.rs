@@ -18,6 +18,10 @@ impl Environment {
         self.values.insert(String::from(name), value);
     }
 
+    pub fn assign(&mut self, name: &Token, value: Value) -> Option<Value> {
+        self.values.insert(String::from(&name.lexeme), value)
+    }
+
     pub fn get(&self, name: &Token) -> Option<&Value> {
         self.values.get(&name.lexeme)
     }
