@@ -30,11 +30,37 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Box<expr::Expr>> {
-        match self.expression() {
-            Ok(expr) => Some(Box::new(expr)),
-            Err(_) => None,
+    pub fn parse(&mut self) -> Option<Vec<stmt::Stmt>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            let statement = match self.statement() {
+                Ok(stmt) => stmt,
+                Err(_) => return None,
+            };
+            statements.push(statement);
         }
+        Some(statements)
+    }
+
+    fn statement(&mut self) -> Result<stmt::Stmt> {
+        if self.match_token(vec![TokenType::Print]) {
+            return self.print_statement();
+        };
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<stmt::Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(stmt::Stmt::Print(stmt::Print { expression: value }))
+    }
+
+    fn expression_statement(&mut self) -> Result<stmt::Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        Ok(stmt::Stmt::Expression(stmt::Expression {
+            expression: expr,
+        }))
     }
 
     fn expression(&mut self) -> Result<expr::Expr> {

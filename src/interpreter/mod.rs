@@ -1,5 +1,5 @@
 use crate::error::SimpleErrorHandler;
-use crate::parser::expr;
+use crate::parser::{expr, stmt};
 use crate::scanner::token::Literal;
 use crate::scanner::token_type::TokenType;
 pub mod error;
@@ -115,10 +115,27 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    pub fn interpret(&mut self, expr: &expr::Expr) {
-        match self.evaluate(expr) {
+    fn visit_expression_statement(&self, stmt: stmt::Expression) {
+        match self.evaluate(&stmt.expression) {
+            _ => (),
+        };
+    }
+
+    fn visit_print_stmt(&mut self, stmt: stmt::Print) {
+        match self.evaluate(&stmt.expression) {
             Ok(val) => println!("{}", val),
             Err(err) => self.error_handler.runtime_error(err),
+        }
+    }
+
+    pub fn interpret(&mut self, statements: Vec<stmt::Stmt>) {
+        for statement in statements {
+            match statement {
+                stmt::Stmt::Expression(expression_statement) => {
+                    self.visit_expression_statement(expression_statement)
+                }
+                stmt::Stmt::Print(print_statement) => self.visit_print_stmt(print_statement),
+            }
         }
     }
 }
