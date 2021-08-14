@@ -2,18 +2,27 @@ use crate::error::SimpleErrorHandler;
 use crate::parser::{expr, stmt};
 use crate::scanner::token::Literal;
 use crate::scanner::token_type::TokenType;
+pub mod environment;
 pub mod error;
 mod value;
+use environment::Environment;
 use error::InterpreterError;
 use value::Value;
 
 pub struct Interpreter<'a> {
     error_handler: &'a mut SimpleErrorHandler,
+    environment: &'a mut Environment,
 }
 
 impl<'a> Interpreter<'a> {
-    pub fn new(error_handler: &'a mut SimpleErrorHandler) -> Self {
-        Self { error_handler }
+    pub fn new(
+        error_handler: &'a mut SimpleErrorHandler,
+        environment: &'a mut Environment,
+    ) -> Self {
+        Self {
+            error_handler,
+            environment,
+        }
     }
 
     fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Value> {
@@ -48,6 +57,16 @@ impl<'a> Interpreter<'a> {
             _ => Err(InterpreterError::new(
                 expr.operator.clone(),
                 "Operator in a unary expression must be a '!' or '-'",
+            )),
+        }
+    }
+
+    fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Value> {
+        match self.environment.get(&expr.name) {
+            Some(val) => Ok(val.clone()),
+            None => Err(InterpreterError::new(
+                expr.name.clone(),
+                &format!("Undefined variable '{}'.", expr.name.lexeme),
             )),
         }
     }
@@ -112,12 +131,14 @@ impl<'a> Interpreter<'a> {
             expr::Expr::Grouping(grouping) => self.visit_grouping_expr(grouping),
             expr::Expr::Literal(literal) => self.visit_literal_expr(literal),
             expr::Expr::Unary(unary) => self.visit_unary_expr(unary),
+            expr::Expr::Variable(variable) => self.visit_variable_expr(variable),
         }
     }
 
-    fn visit_expression_statement(&self, stmt: stmt::Expression) {
+    fn visit_expression_statement(&mut self, stmt: stmt::Expression) {
         match self.evaluate(&stmt.expression) {
-            _ => (),
+            Ok(_) => (),
+            Err(err) => self.error_handler.runtime_error(err),
         };
     }
 
@@ -128,6 +149,17 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn visit_var_stmt(&mut self, stmt: stmt::Var) {
+        let value = match self.evaluate(&stmt.initializer) {
+            Ok(val) => val,
+            Err(err) => {
+                self.error_handler.runtime_error(err);
+                return;
+            }
+        };
+        self.environment.define(&stmt.name.lexeme, value);
+    }
+
     pub fn interpret(&mut self, statements: Vec<stmt::Stmt>) {
         for statement in statements {
             match statement {
@@ -135,6 +167,7 @@ impl<'a> Interpreter<'a> {
                     self.visit_expression_statement(expression_statement)
                 }
                 stmt::Stmt::Print(print_statement) => self.visit_print_stmt(print_statement),
+                stmt::Stmt::Var(var_statement) => self.visit_var_stmt(var_statement),
             }
         }
     }

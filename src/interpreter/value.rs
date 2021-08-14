@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Value {
     Number(f64),
     String(String),

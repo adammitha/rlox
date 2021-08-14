@@ -3,6 +3,7 @@ pub mod interpreter;
 mod parser;
 mod scanner;
 use error::SimpleErrorHandler;
+use interpreter::environment::Environment;
 use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
@@ -14,12 +15,14 @@ use std::{
 
 pub struct Lox {
     error_handler: SimpleErrorHandler,
+    environment: Environment,
 }
 
 impl Lox {
     pub fn new() -> Self {
         Self {
             error_handler: SimpleErrorHandler::new(),
+            environment: Environment::new(),
         }
     }
     pub fn run_file(&mut self, path: &str) -> io::Result<()> {
@@ -54,14 +57,11 @@ impl Lox {
         let mut scanner = Scanner::new(source, &mut self.error_handler);
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens, &mut self.error_handler);
-        let statements = match parser.parse() {
-            Some(expr) => expr,
-            None => return,
-        };
+        let statements = parser.parse();
         if self.error_handler.had_error {
             return;
         };
-        let mut interpreter = Interpreter::new(&mut self.error_handler);
+        let mut interpreter = Interpreter::new(&mut self.error_handler, &mut self.environment);
         interpreter.interpret(statements);
     }
 }
