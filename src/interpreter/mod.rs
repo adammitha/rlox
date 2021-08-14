@@ -1,21 +1,22 @@
+use crate::error::SimpleErrorHandler;
 use crate::parser::expr;
 use crate::scanner::token::Literal;
 use crate::scanner::token_type::TokenType;
-mod error;
+pub mod error;
+mod value;
 use error::InterpreterError;
+use value::Value;
 
-pub struct Interpreter {}
-
-#[derive(PartialEq)]
-pub enum Value {
-    Number(f64),
-    String(String),
-    Boolean(bool),
-    Nil,
+pub struct Interpreter<'a> {
+    error_handler: &'a mut SimpleErrorHandler,
 }
 
-impl Interpreter {
-    pub fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Value> {
+impl<'a> Interpreter<'a> {
+    pub fn new(error_handler: &'a mut SimpleErrorHandler) -> Self {
+        Self { error_handler }
+    }
+
+    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Value> {
         Ok(match &*expr.value {
             Literal::Number(num) => Value::Number(*num),
             Literal::String(string) => Value::String(string.clone()),
@@ -25,11 +26,11 @@ impl Interpreter {
         })
     }
 
-    pub fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Result<Value> {
+    fn visit_grouping_expr(&self, expr: &expr::Grouping) -> Result<Value> {
         self.evaluate(&expr.expression)
     }
 
-    pub fn visit_unary_expr(&self, expr: &expr::Unary) -> Result<Value> {
+    fn visit_unary_expr(&self, expr: &expr::Unary) -> Result<Value> {
         let right = self.evaluate(&expr.right)?;
 
         match expr.operator.token_type {
@@ -104,6 +105,13 @@ impl Interpreter {
             expr::Expr::Grouping(grouping) => self.visit_grouping_expr(grouping),
             expr::Expr::Literal(literal) => self.visit_literal_expr(literal),
             expr::Expr::Unary(unary) => self.visit_unary_expr(unary),
+        }
+    }
+
+    pub fn interpret(&mut self, expr: &expr::Expr) {
+        match self.evaluate(expr) {
+            Ok(val) => println!("{}", val),
+            Err(err) => self.error_handler.runtime_error(err),
         }
     }
 }

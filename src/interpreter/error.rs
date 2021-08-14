@@ -4,8 +4,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[error("{message}")]
 pub struct InterpreterError {
-    token: Token,
-    message: String,
+    pub token: Token,
+    pub message: String,
 }
 
 impl InterpreterError {

@@ -3,7 +3,7 @@ pub mod interpreter;
 mod parser;
 mod scanner;
 use error::SimpleErrorHandler;
-use parser::ast_printer;
+use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 use std::{
@@ -27,6 +27,9 @@ impl Lox {
         self.run(&source);
         if self.error_handler.had_error {
             process::exit(65);
+        }
+        if self.error_handler.had_runtime_error {
+            process::exit(70);
         }
         Ok(())
     }
@@ -55,6 +58,7 @@ impl Lox {
         if self.error_handler.had_error {
             return;
         };
-        println!("{}", ast_printer::print(&expression));
+        let mut interpreter = Interpreter::new(&mut self.error_handler);
+        interpreter.interpret(&expression);
     }
 }

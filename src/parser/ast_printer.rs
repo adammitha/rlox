@@ -1,5 +1,6 @@
 use super::expr::Expr;
 
+#[allow(dead_code)]
 pub fn print(expr: &Expr) -> String {
     match expr {
         Expr::Binary(expr) => parenthesize(&expr.operator.lexeme, &[&expr.left, &expr.right]),
