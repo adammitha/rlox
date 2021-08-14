@@ -64,6 +64,17 @@ impl<'a> Interpreter<'a> {
         let left = self.evaluate(&expr.left)?;
         let right = self.evaluate(&expr.right)?;
 
+        let equality = match expr.operator.token_type {
+            TokenType::BangEqual => Some(Value::Boolean(!(left == right))),
+            TokenType::EqualEqual => Some(Value::Boolean(left == right)),
+            _ => None,
+        };
+
+        match equality {
+            Some(val) => return Ok(val),
+            None => (),
+        };
+
         if let (Value::Number(left_num), Value::Number(right_num)) = (&left, &right) {
             match expr.operator.token_type {
                 TokenType::Greater => Ok(Value::Boolean(left_num > right_num)),
@@ -88,14 +99,10 @@ impl<'a> Interpreter<'a> {
                 )),
             }
         } else {
-            match expr.operator.token_type {
-                TokenType::BangEqual => Ok(Value::Boolean(!(left == right))),
-                TokenType::EqualEqual => Ok(Value::Boolean(left == right)),
-                _ => Err(InterpreterError::new(
-                    expr.operator.clone(),
-                    "Invalid binary operation",
-                )),
-            }
+            Err(InterpreterError::new(
+                expr.operator.clone(),
+                "Invalid binary operation",
+            ))
         }
     }
 
