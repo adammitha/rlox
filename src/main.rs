@@ -14,18 +14,3 @@ fn main() -> io::Result<()> {
     }
     Ok(())
 }
-
-// use rlox::parser::ast_printer;
-// use rlox::parser::expr;
-// use rlox::scanner::token::Literal;
-// fn main() {
-//     let my_expr = produce_expr();
-//     println!("{}", ast_printer::print(&my_expr));
-// }
-
-// fn produce_expr() -> expr::Expr {
-//     let string = Literal::String(String::from("This is a string literal"));
-//     expr::Expr::Literal(expr::Literal {
-//         value: Box::new(string),
-//     })
-// }
