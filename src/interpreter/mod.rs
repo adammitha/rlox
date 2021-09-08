@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::error::SimpleErrorHandler;
 use crate::parser::{expr, stmt};
 use crate::scanner::token::Literal;
@@ -11,13 +14,13 @@ use value::Value;
 
 pub struct Interpreter<'a> {
     error_handler: &'a mut SimpleErrorHandler,
-    environment: &'a mut Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl<'a> Interpreter<'a> {
     pub fn new(
         error_handler: &'a mut SimpleErrorHandler,
-        environment: &'a mut Environment,
+        environment: Rc<RefCell<Environment>>,
     ) -> Self {
         Self {
             error_handler,
@@ -62,7 +65,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Value> {
-        match self.environment.get(&expr.name) {
+        match self.environment.borrow().get(&expr.name) {
             Some(val) => Ok(val.clone()),
             None => Err(InterpreterError::new(
                 expr.name.clone(),
@@ -127,8 +130,12 @@ impl<'a> Interpreter<'a> {
 
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Value> {
         let value = self.evaluate(&expr.value)?;
-        match self.environment.assign(&expr.name, value.clone()) {
-            Some(_) => Ok(value),
+        match self
+            .environment
+            .borrow_mut()
+            .assign(&expr.name, value.clone())
+        {
+            Some(_) => Ok(value), // Discard old value - we want to return updated value
             None => Err(InterpreterError::new(
                 expr.name.clone(),
                 &format!("Undefined variable '{}'.", expr.name.lexeme),
@@ -169,18 +176,49 @@ impl<'a> Interpreter<'a> {
                 return;
             }
         };
-        self.environment.define(&stmt.name.lexeme, value);
+        self.environment
+            .borrow_mut()
+            .define(&stmt.name.lexeme, value);
+    }
+
+    fn visit_block_stmt(&mut self, stmt: stmt::Block) {
+        self.execute_block(
+            stmt.statements,
+            Rc::new(RefCell::new(Environment::with_enclosing(
+                self.environment.clone(),
+            ))),
+        );
+    }
+
+    fn execute_block(
+        &mut self,
+        statements: Vec<stmt::Stmt>,
+        environment: Rc<RefCell<Environment>>,
+    ) {
+        let previous = self.environment.clone();
+        self.environment = environment;
+
+        for statement in statements {
+            self.execute(statement)
+        }
+
+        self.environment = previous;
     }
 
     pub fn interpret(&mut self, statements: Vec<stmt::Stmt>) {
         for statement in statements {
-            match statement {
-                stmt::Stmt::Expression(expression_statement) => {
-                    self.visit_expression_statement(expression_statement)
-                }
-                stmt::Stmt::Print(print_statement) => self.visit_print_stmt(print_statement),
-                stmt::Stmt::Var(var_statement) => self.visit_var_stmt(var_statement),
+            self.execute(statement)
+        }
+    }
+
+    fn execute(&mut self, statement: stmt::Stmt) {
+        match statement {
+            stmt::Stmt::Block(block_statement) => self.visit_block_stmt(block_statement),
+            stmt::Stmt::Expression(expression_statement) => {
+                self.visit_expression_statement(expression_statement)
             }
+            stmt::Stmt::Print(print_statement) => self.visit_print_stmt(print_statement),
+            stmt::Stmt::Var(var_statement) => self.visit_var_stmt(var_statement),
         }
     }
 }

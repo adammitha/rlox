@@ -74,6 +74,10 @@ impl<'a> Parser<'a> {
     fn statement(&mut self) -> Result<stmt::Stmt> {
         if self.match_token(vec![TokenType::Print]) {
             return self.print_statement();
+        } else if self.match_token(vec![TokenType::LeftBrace]) {
+            return Ok(stmt::Stmt::Block(stmt::Block {
+                statements: self.block()?,
+            }));
         };
         self.expression_statement()
     }
@@ -92,6 +96,17 @@ impl<'a> Parser<'a> {
         Ok(stmt::Stmt::Expression(stmt::Expression {
             expression: Box::new(expr),
         }))
+    }
+
+    fn block(&mut self) -> Result<Vec<stmt::Stmt>> {
+        let mut statements = Vec::new();
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
+        Ok(statements)
     }
 
     fn expression(&mut self) -> Result<expr::Expr> {

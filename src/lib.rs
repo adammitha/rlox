@@ -8,21 +8,23 @@ use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 use std::{
+    cell::RefCell,
     fs,
     io::{self, Write},
     process,
+    rc::Rc,
 };
 
 pub struct Lox {
     error_handler: SimpleErrorHandler,
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Lox {
     pub fn new() -> Self {
         Self {
             error_handler: SimpleErrorHandler::new(),
-            environment: Environment::new(),
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
     pub fn run_file(&mut self, path: &str) -> io::Result<()> {
@@ -61,7 +63,7 @@ impl Lox {
         if self.error_handler.had_error {
             return;
         };
-        let mut interpreter = Interpreter::new(&mut self.error_handler, &mut self.environment);
+        let mut interpreter = Interpreter::new(&mut self.error_handler, self.environment.clone());
         interpreter.interpret(statements);
     }
 }
