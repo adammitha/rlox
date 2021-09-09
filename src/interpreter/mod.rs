@@ -28,57 +28,18 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Value> {
-        Ok(match &*expr.value {
-            Literal::Number(num) => Value::Number(*num),
-            Literal::String(string) => Value::String(string.clone()),
-            Literal::True => Value::Boolean(true),
-            Literal::False => Value::Boolean(false),
-            Literal::Nil => Value::Nil,
-        })
-    }
-
-    fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Result<Value> {
-        self.evaluate(&expr.expression)
-    }
-
-    fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Result<Value> {
-        let right = self.evaluate(&expr.right)?;
-
-        match expr.operator.token_type {
-            TokenType::Bang => Ok(Value::Boolean(!self.is_truthy(right))),
-            TokenType::Minus => {
-                if let Value::Number(num) = right {
-                    Ok(Value::Number(-num))
-                } else {
-                    Err(InterpreterError::new(
-                        expr.operator.clone(),
-                        "Operand must be a number",
-                    ))
-                }
-            }
-            _ => Err(InterpreterError::new(
-                expr.operator.clone(),
-                "Operator in a unary expression must be a '!' or '-'",
-            )),
-        }
-    }
-
-    fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Value> {
-        match self.environment.borrow().get(&expr.name) {
-            Some(val) => Ok(val.clone()),
+    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Value> {
+        let value = self.evaluate(&expr.value)?;
+        match self
+            .environment
+            .borrow_mut()
+            .assign(&expr.name, value.clone())
+        {
+            Some(_) => Ok(value), // Discard old value - we want to return updated value
             None => Err(InterpreterError::new(
                 expr.name.clone(),
                 &format!("Undefined variable '{}'.", expr.name.lexeme),
             )),
-        }
-    }
-
-    fn is_truthy(&self, val: Value) -> bool {
-        match val {
-            Value::Nil => false,
-            Value::Boolean(boolean) => boolean,
-            _ => true,
         }
     }
 
@@ -128,18 +89,72 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Value> {
-        let value = self.evaluate(&expr.value)?;
-        match self
-            .environment
-            .borrow_mut()
-            .assign(&expr.name, value.clone())
-        {
-            Some(_) => Ok(value), // Discard old value - we want to return updated value
+    fn visit_grouping_expr(&mut self, expr: &expr::Grouping) -> Result<Value> {
+        self.evaluate(&expr.expression)
+    }
+
+    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Value> {
+        Ok(match &*expr.value {
+            Literal::Number(num) => Value::Number(*num),
+            Literal::String(string) => Value::String(string.clone()),
+            Literal::True => Value::Boolean(true),
+            Literal::False => Value::Boolean(false),
+            Literal::Nil => Value::Nil,
+        })
+    }
+
+    fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Result<Value> {
+        let left = self.evaluate(&expr.left)?;
+
+        if expr.operator.token_type == TokenType::Or {
+            if Interpreter::is_truthy(&left) {
+                return Ok(left);
+            };
+        } else {
+            if !Interpreter::is_truthy(&left) {
+                return Ok(left);
+            }
+        };
+        self.evaluate(&expr.right)
+    }
+
+    fn visit_unary_expr(&mut self, expr: &expr::Unary) -> Result<Value> {
+        let right = self.evaluate(&expr.right)?;
+
+        match expr.operator.token_type {
+            TokenType::Bang => Ok(Value::Boolean(!Interpreter::is_truthy(&right))),
+            TokenType::Minus => {
+                if let Value::Number(num) = right {
+                    Ok(Value::Number(-num))
+                } else {
+                    Err(InterpreterError::new(
+                        expr.operator.clone(),
+                        "Operand must be a number",
+                    ))
+                }
+            }
+            _ => Err(InterpreterError::new(
+                expr.operator.clone(),
+                "Operator in a unary expression must be a '!' or '-'",
+            )),
+        }
+    }
+
+    fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Value> {
+        match self.environment.borrow().get(&expr.name) {
+            Some(val) => Ok(val.clone()),
             None => Err(InterpreterError::new(
                 expr.name.clone(),
                 &format!("Undefined variable '{}'.", expr.name.lexeme),
             )),
+        }
+    }
+
+    fn is_truthy(val: &Value) -> bool {
+        match val {
+            Value::Nil => false,
+            Value::Boolean(boolean) => *boolean,
+            _ => true,
         }
     }
 
@@ -149,76 +164,94 @@ impl<'a> Interpreter<'a> {
             expr::Expr::Binary(binary) => self.visit_binary_expr(binary),
             expr::Expr::Grouping(grouping) => self.visit_grouping_expr(grouping),
             expr::Expr::Literal(literal) => self.visit_literal_expr(literal),
+            expr::Expr::Logical(logical) => self.visit_logical_expr(logical),
             expr::Expr::Unary(unary) => self.visit_unary_expr(unary),
             expr::Expr::Variable(variable) => self.visit_variable_expr(variable),
         }
     }
 
-    fn visit_expression_statement(&mut self, stmt: stmt::Expression) {
-        match self.evaluate(&stmt.expression) {
-            Ok(_) => (),
-            Err(err) => self.error_handler.runtime_error(err),
-        };
-    }
-
-    fn visit_print_stmt(&mut self, stmt: stmt::Print) {
-        match self.evaluate(&stmt.expression) {
-            Ok(val) => println!("{}", val),
-            Err(err) => self.error_handler.runtime_error(err),
-        }
-    }
-
-    fn visit_var_stmt(&mut self, stmt: stmt::Var) {
-        let value = match self.evaluate(&stmt.initializer) {
-            Ok(val) => val,
-            Err(err) => {
-                self.error_handler.runtime_error(err);
-                return;
-            }
-        };
-        self.environment
-            .borrow_mut()
-            .define(&stmt.name.lexeme, value);
-    }
-
-    fn visit_block_stmt(&mut self, stmt: stmt::Block) {
+    fn visit_block_stmt(&mut self, stmt: &stmt::Block) -> Result<()> {
         self.execute_block(
-            stmt.statements,
+            &stmt.statements,
             Rc::new(RefCell::new(Environment::with_enclosing(
                 self.environment.clone(),
             ))),
-        );
+        )?;
+        Ok(())
     }
 
     fn execute_block(
         &mut self,
-        statements: Vec<stmt::Stmt>,
+        statements: &[stmt::Stmt],
         environment: Rc<RefCell<Environment>>,
-    ) {
+    ) -> Result<()> {
         let previous = self.environment.clone();
         self.environment = environment;
 
         for statement in statements {
-            self.execute(statement)
+            self.execute(statement)?;
         }
 
         self.environment = previous;
+        Ok(())
     }
 
-    pub fn interpret(&mut self, statements: Vec<stmt::Stmt>) {
+    fn visit_expression_stmt(&mut self, stmt: &stmt::Expression) -> Result<()> {
+        self.evaluate(&stmt.expression)?;
+        Ok(())
+    }
+
+    fn visit_if_stmt(&mut self, stmt: &stmt::If) -> Result<()> {
+        if Interpreter::is_truthy(&self.evaluate(&stmt.condition)?) {
+            self.execute(&stmt.then_branch)?;
+        } else if let Some(else_branch) = &stmt.else_branch {
+            self.execute(else_branch)?;
+        };
+        Ok(())
+    }
+
+    fn visit_print_stmt(&mut self, stmt: &stmt::Print) -> Result<()> {
+        println!("{}", self.evaluate(&stmt.expression)?);
+        Ok(())
+    }
+
+    fn visit_var_stmt(&mut self, stmt: &stmt::Var) -> Result<()> {
+        let value = self.evaluate(&stmt.initializer)?;
+        self.environment
+            .borrow_mut()
+            .define(&stmt.name.lexeme, value);
+        Ok(())
+    }
+
+    fn visit_while_stmt(&mut self, stmt: &stmt::While) -> Result<()> {
+        while Interpreter::is_truthy(&self.evaluate(&stmt.condition)?) {
+            self.execute(&stmt.body)?;
+        }
+        Ok(())
+    }
+
+    pub fn interpret(&mut self, statements: &[stmt::Stmt]) {
         for statement in statements {
-            self.execute(statement)
+            match self.execute(statement) {
+                Ok(_) => (),
+                Err(err) => {
+                    self.error_handler.runtime_error(err);
+                    return;
+                }
+            };
         }
     }
 
-    fn execute(&mut self, statement: stmt::Stmt) {
+    fn execute(&mut self, statement: &stmt::Stmt) -> Result<()> {
         match statement {
             stmt::Stmt::Block(block_statement) => self.visit_block_stmt(block_statement),
             stmt::Stmt::Expression(expression_statement) => {
-                self.visit_expression_statement(expression_statement)
+                self.visit_expression_stmt(expression_statement)
             }
+            stmt::Stmt::If(if_statement) => self.visit_if_stmt(if_statement),
             stmt::Stmt::Print(print_statement) => self.visit_print_stmt(print_statement),
             stmt::Stmt::Var(var_statement) => self.visit_var_stmt(var_statement),
+            stmt::Stmt::While(while_statement) => self.visit_while_stmt(while_statement),
         }
     }
 }

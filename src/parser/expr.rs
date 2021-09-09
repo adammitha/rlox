@@ -20,6 +20,12 @@ pub struct Literal {
     pub value: Box<token::Literal>,
 }
 
+pub struct Logical {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
+}
+
 pub struct Unary {
     pub operator: Token,
     pub right: Box<Expr>,
@@ -34,6 +40,7 @@ pub enum Expr {
     Binary(Binary),
     Grouping(Grouping),
     Literal(Literal),
+    Logical(Logical),
     Unary(Unary),
     Variable(Variable),
 }

@@ -64,6 +64,6 @@ impl Lox {
             return;
         };
         let mut interpreter = Interpreter::new(&mut self.error_handler, self.environment.clone());
-        interpreter.interpret(statements);
+        interpreter.interpret(&statements);
     }
 }
